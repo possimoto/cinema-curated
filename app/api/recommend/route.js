@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createEmbedding, generateGroundedRecommendation } from '../../../lib/openai';
 import { searchSupabase, searchLocalVectors } from '../../../lib/vectorStore';
-import { buildCandidateContext, groundedFallback, localRetrieve, mergeSemanticResults, validateAndHydrateModelResult } from '../../../lib/recommendation';
-import { loadOverridesMap } from '../../../lib/runtimeData';
+import { buildCandidateContext, groundedFallback, mergeSemanticResults, validateAndHydrateModelResult } from '../../../lib/recommendation';
+import { dynamicLocalRetrieve } from '../../../lib/dynamicRecommendation';
+import { loadRuntimeData } from '../../../lib/runtimeData';
 import { rateLimit } from '../../../lib/rateLimit';
 
 export const runtime = 'nodejs';
@@ -42,13 +43,16 @@ export async function POST(request) {
     }
   }
 
+  const runtime = await loadRuntimeData();
   const semantic = mergeSemanticResults(semanticRows || []);
-  const overrides = await loadOverridesMap();
-  const candidates = localRetrieve(query, { limit: 18, semantic, overrides });
+  const candidates = dynamicLocalRetrieve(query, runtime.archive, { limit: 18, semantic, overrides: runtime.overrides });
   if (!candidates.length) return NextResponse.json({ error: '현재 아카이브에서 충분한 근거를 찾지 못했습니다.' }, { status: 404 });
 
+  const count = runtime.archive.length;
   if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ ...groundedFallback(query, candidates, { mode: retrievalMode, notice: 'OPENAI_API_KEY가 없어 실제 코멘트 검색 결과를 템플릿으로 설명했습니다.' }), retrieval: { mode: retrievalMode, embeddingModel: null } });
+    const fallback = groundedFallback(query, candidates, { mode: retrievalMode, notice: 'OPENAI_API_KEY가 없어 실제 코멘트 검색 결과를 템플릿으로 설명했습니다.' });
+    fallback.intro = fallback.intro.replace(/549개의/g, `${count}개의`).replace(/전체 549편/g, `전체 ${count}편`);
+    return NextResponse.json({ ...fallback, retrieval: { mode: retrievalMode, embeddingModel: null, archiveCount: count } });
   }
 
   try {
@@ -59,15 +63,14 @@ export async function POST(request) {
     return NextResponse.json({
       mode: retrievalMode === 'grounded-keyword' ? 'grounded-ai' : retrievalMode,
       model: generated.model,
-      intro: hydrated.intro || '실제 감상 기록에서 질문과 가까운 작품을 골랐습니다.',
+      intro: hydrated.intro || `실제 ${count}개의 감상 기록에서 질문과 가까운 작품을 골랐습니다.`,
       recommendations: hydrated.recommendations,
       notice: apiNote,
-      retrieval: { mode: retrievalMode, embeddingModel, candidates: context.length },
+      retrieval: { mode: retrievalMode, embeddingModel, candidates: context.length, archiveCount: count },
     });
   } catch (e) {
-    return NextResponse.json({
-      ...groundedFallback(query, candidates, { mode: retrievalMode, notice: `AI 설명 생성에 실패해 근거 검색 결과로 대체했습니다: ${e.message}` }),
-      retrieval: { mode: retrievalMode, embeddingModel },
-    });
+    const fallback = groundedFallback(query, candidates, { mode: retrievalMode, notice: `AI 설명 생성에 실패해 근거 검색 결과로 대체했습니다: ${e.message}` });
+    fallback.intro = fallback.intro.replace(/549개의/g, `${count}개의`).replace(/전체 549편/g, `전체 ${count}편`);
+    return NextResponse.json({ ...fallback, retrieval: { mode: retrievalMode, embeddingModel, archiveCount: count } });
   }
 }
