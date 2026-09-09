@@ -238,12 +238,25 @@ export default function CinemaApp({archive,curated,stats,tmdb,overrides={},runti
     {selected&&<div className="modal-backdrop" onClick={()=>setSelected(null)}><article className="modal" onClick={e=>e.stopPropagation()}>
       <button className="close" onClick={()=>setSelected(null)}>×</button>
       <div className="modal-grid"><div className="modal-poster"><Poster item={selected.item} meta={selectedMeta}/></div><div>
-        <p className="kicker">{selected.curated?'CURATED':'ARCHIVE'} · {selected.item.type} · {selected.item.year}</p><h2>{selected.item.title}</h2>
-        {selectedMeta?.status==='matched'&&<p className="meta-line">{selectedMeta.directors?.join(', ')} · {selectedMeta.genres?.join(' / ')} {selectedMeta.runtime?`· ${selectedMeta.runtime}분`:''}</p>}
-        {selected.curated?.why&&<section><h4>왜 이 작품인가</h4><p>{selected.curated.why}</p></section>}
-        <section><h4>내 코멘트 원문</h4><blockquote>{selected.item.comment||selected.curated?.fullComment}</blockquote></section>
+        <p className="kicker">{selected.curated?'CURATED':'ARCHIVE'} · {selected.item.type} · {selected.item.year}</p>
+        <h2>{selected.item.title}</h2>
+        {selectedMeta?.originalTitle&&selectedMeta.originalTitle!==selected.item.title&&<p style={{margin:'0 0 22px',fontSize:'12px',color:'#858981'}}>{selectedMeta.originalTitle}</p>}
+
+        {selectedMeta?.status==='matched'&&<section style={{paddingTop:'20px'}}>
+          <h4>작품 정보 · TMDB</h4>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:'10px',marginTop:'14px'}}>
+            <div style={{background:'#e5e6df',padding:'13px 14px'}}><small style={{display:'block',fontSize:'9px',letterSpacing:'.12em',color:'#777b75',marginBottom:'6px'}}>DIRECTOR</small><strong style={{fontSize:'13px'}}>{selectedMeta.directors?.length?selectedMeta.directors.join(', '):'—'}</strong></div>
+            <div style={{background:'#e5e6df',padding:'13px 14px'}}><small style={{display:'block',fontSize:'9px',letterSpacing:'.12em',color:'#777b75',marginBottom:'6px'}}>GENRE</small><strong style={{fontSize:'13px'}}>{selectedMeta.genres?.length?selectedMeta.genres.join(' / '):'—'}</strong></div>
+            <div style={{background:'#e5e6df',padding:'13px 14px'}}><small style={{display:'block',fontSize:'9px',letterSpacing:'.12em',color:'#777b75',marginBottom:'6px'}}>RUNTIME</small><strong style={{fontSize:'13px'}}>{selectedMeta.runtime?`${selectedMeta.runtime}분`:'—'}</strong></div>
+            <div style={{background:'#e5e6df',padding:'13px 14px'}}><small style={{display:'block',fontSize:'9px',letterSpacing:'.12em',color:'#777b75',marginBottom:'6px'}}>CAST</small><strong style={{fontSize:'13px',lineHeight:'1.55'}}>{selectedMeta.cast?.length?selectedMeta.cast.slice(0,6).map(x=>x.name).join(', '):'—'}</strong></div>
+          </div>
+        </section>}
+
+        {selected.curated?.why&&<section style={{background:'#111',color:'#f1f1eb',padding:'22px',margin:'0 -10px',borderTop:'0'}}><h4 style={{color:'#d7ff61'}}>왜 이 작품인가</h4><p style={{fontSize:'16px',lineHeight:'1.75',marginBottom:0}}>{selected.curated.why}</p>{selected.curated?.quote&&<p style={{fontFamily:'Georgia,"Noto Serif KR",serif',fontSize:'13px',lineHeight:'1.7',color:'#bfc2ba',marginTop:'16px'}}>“{selected.curated.quote}”</p>}</section>}
+
+        <section><h4>김정웅의 코멘트</h4><blockquote>{selected.item.comment||selected.curated?.fullComment}</blockquote></section>
         <section><h4>주제 신호</h4><div className="tags large">{(selected.item.themes||selected.curated?.themes||[]).map(t=><span key={t}>#{t}</span>)}</div></section>
-        {selectedMeta?.overview&&<section><h4>작품 기본정보 · TMDB</h4><p>{selectedMeta.overview}</p>{selectedMeta.cast?.length>0&&<p className="cast">주요 출연: {selectedMeta.cast.slice(0,6).map(x=>x.name).join(', ')}</p>}</section>}
+        {selectedMeta?.overview&&<section><h4>작품 소개 · TMDB</h4><p>{selectedMeta.overview}</p></section>}
         {!selectedMeta?.posterPath&&<section className="metadata-box"><h4>메타데이터 보강</h4><p>TMDB 토큰이 설정되어 있으면 서버에서 포스터·감독·배우·장르를 조회할 수 있습니다.</p><button onClick={()=>loadLiveMeta(selected.item)}>TMDB 정보 불러오기</button>{metaStatus&&<small>{metaStatus}</small>}</section>}
       </div></div>
     </article></div>}
