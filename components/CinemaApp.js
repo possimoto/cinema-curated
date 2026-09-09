@@ -24,6 +24,14 @@ const excerpt = (s,n=170) => { const x=String(s||'').replace(/\s+/g,' ').trim();
 const byTitleMap = list => new Map(list.map(x=>[x.title,x]));
 const byIdMap = list => new Map(list.map(x=>[x.id,x]));
 
+function randomRank(value,seed){
+  let h=(2166136261^seed)>>>0;
+  const text=String(value||'');
+  for(let i=0;i<text.length;i++) h=Math.imul(h^text.charCodeAt(i),16777619)>>>0;
+  h^=h>>>16;h=Math.imul(h,2246822507)>>>0;h^=h>>>13;h=Math.imul(h,3266489909)>>>0;h^=h>>>16;
+  return h>>>0;
+}
+
 function normalizeMood(q){
   const rules=[
     {keys:['지쳐','지쳤','피곤','무기력','힘들','번아웃','회복'],themes:['삶의 태도'],outcomes:['회복','위로','정돈']},
@@ -124,7 +132,8 @@ export default function CinemaApp({archive,curated,stats,tmdb,overrides={},runti
   const liveArchive=runtime.archive, liveCurated=runtime.curated;
   const [mode,setMode]=useState('all');
   const [query,setQuery]=useState('');
-  const [facet,setFacet]=useState(null);
+  const [selectedFacets,setSelectedFacets]=useState([]);
+  const [shuffleSeed,setShuffleSeed]=useState(0);
   const [limit,setLimit]=useState(48);
   const [mood,setMood]=useState('');
   const [recommendations,setRecommendations]=useState([]);
@@ -140,6 +149,7 @@ export default function CinemaApp({archive,curated,stats,tmdb,overrides={},runti
   const metadataCount=useMemo(()=>Object.values(tmdb||{}).filter(x=>x?.status==='matched').length,[tmdb]);
 
   useEffect(()=>{ fetch('/api/health').then(r=>r.ok?r.json():null).then(setHealth).catch(()=>{}); },[]);
+  useEffect(()=>{ setShuffleSeed(Math.floor(Math.random()*2147483647)+1); },[]);
 
   const facets=useMemo(()=>{
     if(mode==='theme') return uniq(liveArchive.flatMap(x=>x.themes||[]));
@@ -152,24 +162,30 @@ export default function CinemaApp({archive,curated,stats,tmdb,overrides={},runti
     return [];
   },[mode,liveArchive]);
 
+  function toggleFacet(value){
+    const key=String(value);
+    setSelectedFacets(current=>current.includes(key)?current.filter(x=>x!==key):[...current,key]);
+    setLimit(48);
+  }
+
   const filtered=useMemo(()=>{
     const q=query.trim().toLowerCase();
     return liveArchive.filter(m=>{
       let ok=true;
-      if(facet){
-        if(mode==='theme') ok=m.themes?.includes(facet);
-        else if(mode==='type') ok=m.type===facet;
-        else if(mode==='year') ok=String(m.year)===String(facet);
-        else if(mode==='director') ok=m.directors?.includes(facet);
-        else if(mode==='actor') ok=m.actors?.includes(facet);
-        else if(mode==='genre') ok=m.genres?.includes(facet);
-        else if(mode==='audience') ok=m.audiences?.includes(facet);
+      if(selectedFacets.length){
+        if(mode==='theme') ok=(m.themes||[]).some(x=>selectedFacets.includes(String(x)));
+        else if(mode==='type') ok=selectedFacets.includes(String(m.type));
+        else if(mode==='year') ok=selectedFacets.includes(String(m.year));
+        else if(mode==='director') ok=(m.directors||[]).some(x=>selectedFacets.includes(String(x)));
+        else if(mode==='actor') ok=(m.actors||[]).some(x=>selectedFacets.includes(String(x)));
+        else if(mode==='genre') ok=(m.genres||[]).some(x=>selectedFacets.includes(String(x)));
+        else if(mode==='audience') ok=(m.audiences||[]).some(x=>selectedFacets.includes(String(x)));
       }
       if(!ok) return false;
       if(!q) return true;
       return [m.title,m.comment,...(m.directors||[]),...(m.actors||[]),...(m.genres||[]),...(m.themes||[])].join(' ').toLowerCase().includes(q);
-    }).sort((a,b)=>(b.year||0)-(a.year||0));
-  },[mode,liveArchive,query,facet]);
+    }).sort((a,b)=>randomRank(a.id,shuffleSeed)-randomRank(b.id,shuffleSeed));
+  },[mode,liveArchive,query,selectedFacets,shuffleSeed]);
 
   function localFallback(q){
     const intent=normalizeMood(q); const used=new Set(); const candidates=[];
@@ -217,10 +233,10 @@ export default function CinemaApp({archive,curated,stats,tmdb,overrides={},runti
     </section>
 
     <section className="archive-section">
-      <div className="section-head"><div><span>02</span><h2>아카이브 탐색</h2></div><p>원문 코멘트를 보존한 상태에서 주제·장르·감독·배우·관람상황까지 탐색합니다.</p></div>
-      <div className="tabs">{[['all','전체'],['theme','주제'],['type','유형'],['year','연도'],['genre','장르'],['director','감독'],['actor','배우'],['audience','관람상황']].map(([k,l])=><button className={mode===k?'active':''} key={k} onClick={()=>{setMode(k);setFacet(null);setLimit(48)}}>{l}</button>)}</div>
-      <div className="searchline"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="영화, 코멘트, 감독, 배우, 주제 검색"/><span>{filtered.length} titles</span></div>
-      {facets.length>0&&<div className="facets">{facets.map(f=><button className={String(facet)===String(f)?'active':''} key={f} onClick={()=>setFacet(String(facet)===String(f)?null:f)}>{f}</button>)}</div>}
+      <div className="section-head"><div><span>02</span><h2>아카이브 탐색</h2></div><p>페이지를 열 때마다 작품 순서는 새롭게 섞입니다. 세부 필터는 여러 개를 동시에 선택할 수 있습니다.</p></div>
+      <div className="tabs">{[['all','전체'],['theme','주제'],['type','유형'],['year','연도'],['genre','장르'],['director','감독'],['actor','배우'],['audience','관람상황']].map(([k,l])=><button className={mode===k?'active':''} key={k} onClick={()=>{setMode(k);setSelectedFacets([]);setLimit(48)}}>{l}</button>)}</div>
+      <div className="searchline"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="영화, 코멘트, 감독, 배우, 주제 검색"/><span>{filtered.length} titles{selectedFacets.length?` · ${selectedFacets.length} filters`:''}</span></div>
+      {facets.length>0&&<><div className="facets">{facets.map(f=>{const active=selectedFacets.includes(String(f));return <button className={active?'active':''} aria-pressed={active} key={f} onClick={()=>toggleFacet(f)}>{f}</button>;})}</div>{selectedFacets.length>0&&<p className="subnote">복수 선택 중 · 선택한 조건 중 하나라도 포함된 작품을 표시합니다. <button onClick={()=>setSelectedFacets([])} style={{border:0,background:'transparent',color:'inherit',textDecoration:'underline',cursor:'pointer',padding:0}}>전체 해제</button></p>}</>}
       {['genre','director','actor'].includes(mode)&&metadataCount<liveArchive.length&&<p className="subnote">현재 {metadataCount}편에 외부 작품 메타데이터가 연결되어 있습니다. TMDB 보강이 진행될수록 필터 범위가 자동으로 넓어집니다.</p>}
       <div className="grid">{filtered.slice(0,limit).map(item=>{const c=curatedByTitle.get(item.title);return <Card key={item.id} item={item} curated={c} meta={tmdb?.[item.id]} onOpen={()=>open(item,c)}/>;})}</div>
       {limit<filtered.length&&<button className="load-more" onClick={()=>setLimit(x=>x+48)}>더 보기</button>}
