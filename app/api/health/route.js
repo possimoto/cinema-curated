@@ -9,10 +9,10 @@ export async function GET() {
   return NextResponse.json({
     version: '1.0.0',
     openai: Boolean(process.env.OPENAI_API_KEY),
-    supabase: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY),
+    supabase: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)),
     tmdb: Boolean(process.env.TMDB_READ_TOKEN),
     localVector,
-    recommendationModel: process.env.OPENAI_RECOMMEND_MODEL || 'gpt-6-astra',
+    recommendationModel: process.env.OPENAI_RECOMMEND_MODEL || 'gpt-5.6-terra',
     embeddingModel: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
   });
 }
