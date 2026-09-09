@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { assertAdmin } from '../../../../lib/admin';
-import { upsertOverride } from '../../../../lib/runtimeData';
-import { getArchiveRecord } from '../../../../lib/recommendation';
+import { getContentRecord, upsertOverride } from '../../../../lib/runtimeData';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,7 +12,7 @@ export async function POST(request) {
     assertAdmin(request);
     const body = await request.json();
     const id = String(body?.id || '');
-    if (!getArchiveRecord(id)) return NextResponse.json({ error: '존재하지 않는 작품 ID입니다.' }, { status: 404 });
+    if (!await getContentRecord(id)) return NextResponse.json({ error: '존재하지 않는 작품 ID입니다.' }, { status: 404 });
     const p = body?.patch || {};
     const patch = {
       themes: cleanList(p.themes), moods: cleanList(p.moods), outcomes: cleanList(p.outcomes), audiences: cleanList(p.audiences),
