@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { assertAdmin } from '../../../../lib/admin';
 import { enrichRecordFromTmdb } from '../../../../lib/tmdb';
-import { getArchiveRecord } from '../../../../lib/recommendation';
-import { upsertTitleMetadata } from '../../../../lib/runtimeData';
+import { getContentRecord, upsertTitleMetadata } from '../../../../lib/runtimeData';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,7 +15,7 @@ export async function POST(request) {
     if (!ids.length) return NextResponse.json({ error: 'ids가 필요합니다.' }, { status: 400 });
     const results = [];
     for (const id of ids) {
-      const record = getArchiveRecord(id);
+      const record = await getContentRecord(id);
       if (!record) { results.push({ id, error: 'not found' }); continue; }
       try {
         const meta = await enrichRecordFromTmdb(record);
