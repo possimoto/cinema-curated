@@ -10,7 +10,7 @@ export async function GET(request) {
     return NextResponse.json({
       ok: true,
       version: '1.0.0',
-      supabase: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY),
+      supabase: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)),
       tmdb: Boolean(process.env.TMDB_READ_TOKEN),
       openai: Boolean(process.env.OPENAI_API_KEY),
     });
