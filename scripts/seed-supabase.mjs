@@ -4,16 +4,16 @@ try { process.loadEnvFile?.('.env.local'); } catch {}
 try { process.loadEnvFile?.('.env'); } catch {}
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) {
-  console.error('NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY가 필요합니다.');
+  console.error('NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SECRET_KEY(또는 legacy SUPABASE_SERVICE_ROLE_KEY)가 필요합니다.');
   process.exit(1);
 }
 
 const archive = JSON.parse(await fs.readFile(new URL('../data/archive.json', import.meta.url), 'utf8'));
 const curated = JSON.parse(await fs.readFile(new URL('../data/curated.json', import.meta.url), 'utf8'));
 const meta = JSON.parse(await fs.readFile(new URL('../data/tmdb-cache.json', import.meta.url), 'utf8'));
-const headers = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
+const headers = { apikey: key, ...(key.startsWith('eyJ') ? { Authorization: `Bearer ${key}` } : {}), 'Content-Type': 'application/json' };
 
 async function upsert(table, rows, conflict) {
   if (!rows.length) return;
