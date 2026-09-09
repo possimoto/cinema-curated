@@ -14,6 +14,7 @@ export default function AdminStudio() {
   const [form, setForm] = useState(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState(null);
 
   useEffect(() => {
     const saved = sessionStorage.getItem('cinema-admin-secret');
@@ -26,6 +27,7 @@ export default function AdminStudio() {
     if (!q) return catalog;
     return catalog.filter((x) => [x.title, x.comment, ...(x.themes || []), ...(x.metadata?.genres || []), ...(x.metadata?.directors || [])].join(' ').toLowerCase().includes(q));
   }, [catalog, query]);
+  const tmdbMatched = useMemo(() => catalog.filter((x) => x.metadata?.tmdbId).length, [catalog]);
 
   async function login() {
     setBusy(true); setMessage('');
@@ -99,6 +101,47 @@ export default function AdminStudio() {
     finally { setBusy(false); }
   }
 
+  async function enrichAllTmdb() {
+    const pending = catalog.filter((item) => !item.metadata?.tmdbId);
+    if (!pending.length) {
+      setMessage('모든 작품의 TMDB 메타데이터가 이미 보강되어 있습니다.');
+      return;
+    }
+
+    setBusy(true);
+    setMessage('');
+    setBulkProgress({ done: 0, total: pending.length, matched: 0, failed: 0 });
+    let done = 0;
+    let matched = 0;
+    let failed = 0;
+
+    try {
+      for (let i = 0; i < pending.length; i += 10) {
+        const batch = pending.slice(i, i + 10);
+        const res = await fetch('/api/admin/tmdb', {
+          method: 'POST', headers,
+          body: JSON.stringify({ ids: batch.map((item) => item.id) }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'TMDB 일괄 보강 실패');
+
+        for (const result of data.results || []) {
+          if (result?.tmdbId) matched += 1;
+          else failed += 1;
+        }
+        done += batch.length;
+        setBulkProgress({ done, total: pending.length, matched, failed });
+      }
+
+      setMessage(`TMDB 일괄 보강 완료 · 성공 ${matched}건 · 미매칭/오류 ${failed}건`);
+      await loadCatalog();
+    } catch (e) {
+      setMessage(`TMDB 일괄 보강 중단: ${e.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function exportJson() {
     if (!selected || !form) return;
     const blob = new Blob([JSON.stringify({ title_id: selected.id, ...form, themes: parseList(form.themes), moods: parseList(form.moods), outcomes: parseList(form.outcomes), audiences: parseList(form.audiences) }, null, 2)], { type: 'application/json' });
@@ -108,9 +151,9 @@ export default function AdminStudio() {
   if (!status) return <main className="admin-shell"><section className="admin-login"><p className="kicker">CINEMA, CURATED · ADMIN</p><h1>CURATION STUDIO</h1><p>공개 서비스의 원문은 건드리지 않고, 추천 태그와 큐레이션 레이어만 관리합니다.</p><input type="password" value={secret} onChange={(e)=>setSecret(e.target.value)} onKeyDown={(e)=>e.key==='Enter'&&login()} placeholder="ADMIN_SECRET"/><button onClick={login} disabled={busy||!secret}>{busy?'확인 중…':'운영자 로그인'}</button>{message&&<small>{message}</small>}</section></main>;
 
   return <main className="admin-shell">
-    <header className="admin-top"><div><p className="kicker">CINEMA, CURATED · ADMIN</p><h1>CURATION STUDIO</h1></div><div className="admin-health"><span>Supabase {status.supabase?'ON':'OFF'}</span><span>TMDB {status.tmdb?'ON':'OFF'}</span><span>OpenAI {status.openai?'ON':'OFF'}</span></div></header>
+    <header className="admin-top"><div><p className="kicker">CINEMA, CURATED · ADMIN</p><h1>CURATION STUDIO</h1></div><div className="admin-health"><span>Supabase {status.supabase?'ON':'OFF'}</span><span>TMDB {status.tmdb?'ON':'OFF'}</span><span>OpenAI {status.openai?'ON':'OFF'}</span><span>TMDB 매칭 {tmdbMatched}/{catalog.length}</span></div></header>
     <div className="admin-layout">
-      <aside className="admin-list"><input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="549개 기록 검색"/><small>{filtered.length} / {catalog.length}</small><div>{filtered.map((item)=><button key={item.id} className={selected?.id===item.id?'active':''} onClick={()=>choose(item)}><strong>{item.title}</strong><span>{item.type} · {item.year} {item.metadata?.tmdbId?'· TMDB':''}</span></button>)}</div></aside>
+      <aside className="admin-list"><input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="549개 기록 검색"/><small>{filtered.length} / {catalog.length}</small><button onClick={enrichAllTmdb} disabled={busy||!status.tmdb||!status.supabase||!catalog.length}>{busy&&bulkProgress?'TMDB 보강 중…':'전체 TMDB 보강'}</button>{bulkProgress&&<small>{bulkProgress.done}/{bulkProgress.total} · 성공 {bulkProgress.matched} · 미매칭/오류 {bulkProgress.failed}</small>}<div>{filtered.map((item)=><button key={item.id} className={selected?.id===item.id?'active':''} onClick={()=>choose(item)}><strong>{item.title}</strong><span>{item.type} · {item.year} {item.metadata?.tmdbId?'· TMDB':''}</span></button>)}</div></aside>
       <section className="admin-editor">
         {!selected?<div className="admin-empty">왼쪽에서 작품을 선택하세요.</div>:<>
           <div className="admin-title"><div><span>{selected.id}</span><h2>{selected.title}</h2><p>{selected.type} · {selected.year}</p></div>{selected.metadata?.posterPath&&<img src={`https://image.tmdb.org/t/p/w185${selected.metadata.posterPath}`} alt=""/>}</div>
