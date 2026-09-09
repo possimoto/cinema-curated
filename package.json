@@ -1,0 +1,24 @@
+{
+  "name": "cinema-curated",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "tmdb:enrich": "node scripts/enrich-tmdb.mjs",
+    "supabase:seed": "node scripts/seed-supabase.mjs",
+    "validate": "node scripts/validate.mjs",
+    "embeddings:build": "node scripts/build-embeddings.mjs",
+    "embeddings:push": "node scripts/push-embeddings-supabase.mjs",
+    "check": "npm run validate && npm run build"
+  },
+  "dependencies": {
+    "next": "16.3.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

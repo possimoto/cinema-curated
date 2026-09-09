@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="549개의 영화·시리즈 감상 기록을 바탕으로 만든 개인 시네마 큐레이션" />
+  <title>Cinema, Curated — 549개의 감상으로 만든 개인 시네마 큐레이션</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="홈으로"><span class="brand-mark">C</span><span>CINEMA, CURATED</span></a>
+    <nav class="nav"><a href="#recommend">지금의 나에게</a><a href="#browse">549 Archive</a><a href="#lenses">나의 시선</a><a href="#about">About</a></nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="eyebrow">PERSONAL CINEMA CURATION · RELEASE 1.0</div>
+      <h1>영화를 고르는 것이 아니라,<br><em>영화를 읽는 방식을 추천합니다.</em></h1>
+      <p class="hero-copy">485편의 영화와 64편의 시리즈 코멘트를 작품 단위로 구조화했습니다. 원문은 그대로 보존하고, 추천 이유에는 실제 코멘트의 근거를 함께 보여줍니다. v1.0 공개 서비스는 OpenAI·벡터 검색·TMDB·관리자 큐레이션을 단계적으로 연결할 수 있으며, 이 정적 미리보기는 SOURCE SEARCH만 시연합니다.</p>
+      <div class="hero-actions"><a class="btn primary" href="#recommend">지금 영화 추천받기</a><a class="btn ghost" href="#browse">549개 감상 둘러보기</a></div>
+      <div class="hero-notes"><span>영화 485</span><span>시리즈 64</span><span>큐레이션 28</span><span>원문 코멘트 보존</span><span>자동 주제 태깅</span></div>
+    </section>
+
+    <section id="recommend" class="section recommend-section">
+      <div class="section-head split"><div><div class="eyebrow">MOOD CURATOR · SOURCE GROUNDED</div><h2>오늘은 어떤 영화를 보고 싶나요?</h2></div><div class="step-hint">549개 전체 감상에서 후보를 찾고 실제 코멘트를 추천의 근거로 사용합니다.</div></div>
+      <div class="mood-panel">
+        <div class="mood-input-wrap"><textarea id="moodInput" rows="3" placeholder="예: 오늘 좀 지쳤는데 너무 감상적이지 않았으면 좋겠고, 보고 나면 다시 내 삶을 잘 살아보고 싶다는 생각이 들었으면 좋겠어."></textarea><button id="recommendBtn" class="btn primary mood-btn">추천하기</button></div>
+        <div class="quick-moods" id="quickMoods"></div>
+        <p class="privacy-note">실제 v1.0에서 OpenAI가 연결된 경우 추천 질문은 서버를 통해 모델 API에 전달될 수 있습니다. 이 정적 미리보기는 외부 AI API를 호출하지 않습니다.</p>
+      </div>
+      <div class="mode-note" style="margin-top:16px">STATIC PREVIEW · SOURCE SEARCH — v1.0 서버 환경에서는 GROUNDED AI / VECTOR RAG로 자동 승격됩니다.</div><div id="recommendationIntro" class="recommendation-intro hidden"></div>
+      <div id="recommendationGrid" class="card-grid recommendation-grid"></div>
+    </section>
+
+    <section id="browse" class="section">
+      <div class="section-head split"><div><div class="eyebrow">549 REVIEW ARCHIVE</div><h2>기록 전체를 탐색합니다.</h2></div><p class="section-description">원문 549건을 중심으로 탐색합니다. 정적 미리보기의 감독·배우·장르 필터는 수기 큐레이션 기준이며, 실제 v1.0 서버에서는 TMDB 메타데이터가 쌓이는 만큼 자동 확장됩니다.</p></div>
+      <div class="filter-bar" role="tablist" aria-label="탐색 기준">
+        <button class="filter-tab active" data-mode="all">전체 549</button>
+        <button class="filter-tab" data-mode="curated">큐레이션 28</button>
+        <button class="filter-tab" data-mode="theme">주제</button>
+        <button class="filter-tab" data-mode="type">유형</button>
+        <button class="filter-tab" data-mode="year">연도</button>
+        <button class="filter-tab" data-mode="genre">장르*</button>
+        <button class="filter-tab" data-mode="director">감독*</button>
+        <button class="filter-tab" data-mode="actor">배우*</button>
+        <button class="filter-tab" data-mode="audience">관람상황*</button>
+      </div>
+      <div id="facetBar" class="facet-bar"></div>
+      <div class="search-row"><input id="searchInput" type="search" placeholder="작품명 또는 코멘트의 단어·문장을 검색" /><span id="resultCount" class="result-count"></span></div>
+      <div id="modeNote" class="mode-note"></div>
+      <div id="movieGrid" class="card-grid"></div>
+      <button id="loadMore" class="btn ghost load-more hidden">더 보기</button>
+    </section>
+
+    <section id="lenses" class="section lenses-section">
+      <div class="section-head split"><div><div class="eyebrow">CURATOR'S LENSES</div><h2>영화를 바라보는 다섯 개의 렌즈</h2></div><p class="section-description">전체 코멘트에서 반복되는 질문을 추천 엔진의 상위 개념으로 사용합니다.</p></div>
+      <div id="lensGrid" class="lens-grid"></div>
+    </section>
+
+    <section id="about" class="section about-section">
+      <div class="about-card"><div><div class="eyebrow">ABOUT CINEMA, CURATED V1.0</div><h2>목록에서<br>추천 데이터베이스로.</h2></div><div class="about-copy"><p>v1.0은 549개 코멘트 원문을 보존하면서 source-grounded 추천, OpenAI 설명 생성, 벡터 검색, TMDB 메타데이터, 관리자 큐레이션을 하나의 Next.js 서비스 구조로 통합했습니다.</p><p>이 정적 파일은 서버 API가 없으므로 SOURCE SEARCH만 시연합니다. 실제 v1.0에서는 추천 이유와 원문 evidence를 함께 반환하고 운영자는 원문을 훼손하지 않은 채 추천 태그와 메타데이터를 관리할 수 있습니다.</p></div></div>
+    </section>
+  </main>
+
+  <section class="section credits-section"><div class="credits-card"><div><strong>Movie metadata</strong><p>TMDB 연결 시 포스터·감독·배우·장르 등의 객관 메타데이터를 보강합니다.</p></div><div class="tmdb-credit"><img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_square_1-5bdc75aaebeb75dc7ae79426ddd9be3b2be1e342510f8202baf6bffa71d7f5c4.svg" alt="TMDB" loading="lazy"><small>This product uses the TMDB API but is not endorsed or certified by TMDB.</small></div></div></section>
+  <footer><span>CINEMA, CURATED · v1.0</span><span>549 personal reviews → personal recommendation</span></footer>
+  <dialog id="movieDialog" class="movie-dialog"><button id="dialogClose" class="dialog-close" aria-label="닫기">×</button><div id="dialogContent"></div></dialog>
+  <script src="./data.js"></script><script src="./app.js"></script>
+</body>
+</html>
