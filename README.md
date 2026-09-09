@@ -53,18 +53,20 @@ npm run dev
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 OPENAI_API_KEY=
-OPENAI_RECOMMEND_MODEL=gpt-6-astra
+OPENAI_RECOMMEND_MODEL=gpt-5.6-terra
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 
 TMDB_READ_TOKEN=
 
 NEXT_PUBLIC_SUPABASE_URL=
+SUPABASE_SECRET_KEY=
+# legacy fallback
 SUPABASE_SERVICE_ROLE_KEY=
 
 ADMIN_SECRET=
 ```
 
-`OPENAI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `TMDB_READ_TOKEN`, `ADMIN_SECRET`은 서버 전용입니다. `NEXT_PUBLIC_` 접두사를 붙이지 마세요.
+`OPENAI_API_KEY`, `SUPABASE_SECRET_KEY`(또는 legacy `SUPABASE_SERVICE_ROLE_KEY`), `TMDB_READ_TOKEN`, `ADMIN_SECRET`은 서버 전용입니다. `NEXT_PUBLIC_` 접두사를 붙이지 마세요.
 
 ## Supabase 설치
 
@@ -178,4 +180,4 @@ npm run build
 npm run check
 ```
 
-이 패키지 생성 환경에서는 네트워크 제한 때문에 `npm install`이 완료되지 않아 `next build`를 실제 실행하지 못했습니다. 데이터·서버 JavaScript·JSX 구문 검증은 별도로 수행했습니다. 실제 배포 환경/Vercel에서는 의존성 설치 후 build가 실행됩니다.
+GitHub Actions와 Vercel에서 `npm install`, 데이터 검증, `next build`를 자동 검증합니다.
