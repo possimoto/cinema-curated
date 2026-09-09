@@ -4,9 +4,9 @@ try { process.loadEnvFile?.('.env.local'); } catch {}
 try { process.loadEnvFile?.('.env'); } catch {}
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) {
-  console.error('NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY가 필요합니다.');
+  console.error('NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SECRET_KEY(또는 legacy SUPABASE_SERVICE_ROLE_KEY)가 필요합니다.');
   process.exit(1);
 }
 let store;
@@ -16,7 +16,7 @@ if (store.dimensions !== 1536) {
   console.error(`현재 Supabase 스키마는 1536차원입니다. embeddings.json은 ${store.dimensions}차원입니다.`);
   process.exit(1);
 }
-const headers = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
+const headers = { apikey: key, ...(key.startsWith('eyJ') ? { Authorization: `Bearer ${key}` } : {}), 'Content-Type': 'application/json' };
 const entries = Object.entries(store.vectors || {});
 for (let i = 0; i < entries.length; i += 1) {
   const [titleId, vector] = entries[i];
